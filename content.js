@@ -149,6 +149,14 @@
   // on the source page's direction so the loading state and the result land
   // on the same side. Text flow inside panels still uses result.language.
 
+  // Languages whose script is right-to-left.
+  const RTL_LANGS = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'dv']);
+
+  /** @param {string | undefined} lang */
+  function isRTLLang(lang) {
+    return !!lang && RTL_LANGS.has(lang.toLowerCase().slice(0, 2));
+  }
+
   function getPageDir() {
     if (document.documentElement.dir === 'rtl') return 'rtl';
     if (document.documentElement.dir === 'ltr') return 'ltr';
@@ -184,6 +192,70 @@
     if (el) el.remove();
   }
 
+  /**
+   * Returns a live shadow root for the pill/panel host. If `pillRoot` is
+   * stale (its host element was removed from the DOM, e.g. user dismissed
+   * a previous panel), this transparently creates a fresh one.
+   * @returns {ShadowRoot}
+   */
+  function getPillRoot() {
+    if (!pillRoot || !pillRoot.host || !pillRoot.host.isConnected) {
+      pillRoot = makeShadowHost(HOST_ID);
+    }
+    return pillRoot;
+  }
+
+  /**
+   * Make `panel` draggable by `handle`. Buttons and links inside the handle
+   * still work. Position is constrained so a strip of the panel stays
+   * within the viewport.
+   * @param {HTMLElement} panel
+   * @param {HTMLElement} handle
+   */
+  function makeDraggable(panel, handle) {
+    let dragging = false;
+    let moved = false;
+    let startX = 0, startY = 0, origLeft = 0, origTop = 0;
+
+    handle.addEventListener('pointerdown', (e) => {
+      const t = /** @type {Element | null} */ (e.target);
+      if (t?.closest('button') || t?.closest('a')) return;
+      e.preventDefault();
+      dragging = true;
+      moved = false;
+      handle.setPointerCapture(e.pointerId);
+      const rect = panel.getBoundingClientRect();
+      origLeft = rect.left;
+      origTop = rect.top;
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+
+    handle.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+      moved = true;
+      const w = panel.offsetWidth;
+      const minVisible = 80;
+      const newLeft = Math.max(-w + minVisible, Math.min(window.innerWidth - minVisible, origLeft + dx));
+      const newTop = Math.max(0, Math.min(window.innerHeight - 40, origTop + dy));
+      panel.style.left = newLeft + 'px';
+      panel.style.top = newTop + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+    });
+
+    const stop = (/** @type {PointerEvent} */ e) => {
+      if (!dragging) return;
+      dragging = false;
+      try { handle.releasePointerCapture(e.pointerId); } catch {}
+    };
+    handle.addEventListener('pointerup', stop);
+    handle.addEventListener('pointercancel', stop);
+  }
+
   // ---- Loading pill -------------------------------------------------------
 
   /** @type {ShadowRoot | null} */
@@ -191,8 +263,8 @@
 
   /** @param {string} text */
   function showPill(text) {
-    if (!pillRoot) pillRoot = makeShadowHost(HOST_ID);
-    pillRoot.innerHTML = `
+    const root = getPillRoot();
+    root.innerHTML = `
       <style>
         :host, * { box-sizing: border-box; }
         .pill {
@@ -220,8 +292,8 @@
    * @param {boolean} [autoFade]
    */
   function showError(text, autoFade = true) {
-    if (!pillRoot) pillRoot = makeShadowHost(HOST_ID);
-    pillRoot.innerHTML = `
+    const root = getPillRoot();
+    root.innerHTML = `
       <style>
         .pill {
           position: fixed; top: 16px; ${pinSide()}
@@ -236,10 +308,10 @@
       </style>
       <div class="pill" id="p">⚠️ ${text}</div>
     `;
-    pillRoot.getElementById('p')?.addEventListener('click', () => removeNode(HOST_ID));
+    root.getElementById('p')?.addEventListener('click', () => removeNode(HOST_ID));
     if (autoFade) {
       setTimeout(() => {
-        const el = pillRoot && pillRoot.getElementById('p');
+        const el = root.getElementById('p');
         if (el) el.style.opacity = '0';
         setTimeout(() => removeNode(HOST_ID), 500);
       }, 5000);
@@ -247,8 +319,8 @@
   }
 
   function showSetupBanner() {
-    if (!pillRoot) pillRoot = makeShadowHost(HOST_ID);
-    pillRoot.innerHTML = `
+    const root = getPillRoot();
+    root.innerHTML = `
       <style>
         .pill {
           position: fixed; top: 16px; ${pinSide()}
@@ -263,7 +335,7 @@
       </style>
       <div class="pill" id="p">the-gist needs an API key — click to set up<span class="x">×</span></div>
     `;
-    pillRoot.getElementById('p')?.addEventListener('click', () => {
+    root.getElementById('p')?.addEventListener('click', () => {
       chrome.runtime.sendMessage({ type: 'open-options' });
       removeNode(HOST_ID);
     });
@@ -275,7 +347,7 @@
   function renderPanel(result) {
     const root = makeShadowHost(HOST_ID);
     pillRoot = root;
-    const dir = result.language === 'he' ? 'rtl' : 'ltr';
+    const dir = isRTLLang(result.language) ? 'rtl' : 'ltr';
     const summary = (result.summary || []).map(escapeHTML).map((s) => `<li>${s}</li>`).join('');
 
     root.innerHTML = `
@@ -295,7 +367,8 @@
         .head {
           display: flex; align-items: center; justify-content: space-between;
           padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.08);
-          user-select: none;
+          user-select: none; cursor: move;
+          touch-action: none;
         }
         .brand { font-weight: 600; font-size: 12px; letter-spacing: 0.04em; opacity: 0.7; text-transform: lowercase; }
         .ctrls { display: flex; gap: 4px; }
@@ -339,7 +412,8 @@
     const panel = root.getElementById('panel');
     const toggle = root.getElementById('toggle');
     const close = root.getElementById('close');
-    if (!panel || !toggle || !close) return;
+    const head = /** @type {HTMLElement | null} */ (root.querySelector('.head'));
+    if (!panel || !toggle || !close || !head) return;
 
     let collapsed = false;
     /** @param {boolean} c */
@@ -351,6 +425,7 @@
     };
     toggle.addEventListener('click', () => setCollapsed(!collapsed));
     close.addEventListener('click', () => removeNode(HOST_ID));
+    makeDraggable(panel, head);
 
     setTimeout(() => { if (!collapsed) setCollapsed(true); }, 15000);
   }
@@ -364,7 +439,7 @@
   function renderTakeover(result, originalUrl) {
     removeNode(HOST_ID); // remove pill if present
     const root = makeShadowHost(TAKEOVER_ID);
-    const dir = result.language === 'he' ? 'rtl' : 'ltr';
+    const dir = isRTLLang(result.language) ? 'rtl' : 'ltr';
     const previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
 
@@ -547,7 +622,7 @@
     const showOpenLink = opts.showOpenLink !== false;
     const root = makeShadowHost(HOST_ID);
     pillRoot = root;
-    const dir = result.language === 'he' ? 'rtl' : 'ltr';
+    const dir = isRTLLang(result.language) ? 'rtl' : 'ltr';
     const summary = (result.summary || []).map(escapeHTML).map((s) => `<li>${s}</li>`).join('');
     let hostname = linkUrl;
     try { hostname = new URL(linkUrl).hostname; } catch {}
@@ -569,15 +644,19 @@
           padding: 11px 14px; font-weight: 600; font-size: 12px;
           letter-spacing: 0.06em; text-transform: lowercase;
           display: flex; align-items: center; gap: 8px;
+          cursor: move; user-select: none; touch-action: none;
         }
         .verdict.bait { background: #D94F3B; color: #fff; }
         .verdict.legit { background: #2e7a36; color: #fff; }
         .verdict .label { flex: 1; }
-        .verdict .x {
+        .verdict .ctrl {
           background: transparent; border: 0; color: #fff; cursor: pointer;
-          opacity: 0.8; font-size: 16px; line-height: 1; padding: 2px 4px;
+          opacity: 0.8; font-size: 14px; line-height: 1; padding: 4px 6px;
+          font-weight: 600;
         }
-        .verdict .x:hover { opacity: 1; }
+        .verdict .ctrl:hover { opacity: 1; }
+        .panel.collapsed .reason,
+        .panel.collapsed .body { display: none; }
         .reason {
           padding: 8px 14px 10px; font-size: 12px; color: #f3c8c0;
           background: rgba(217,79,59,0.18); font-style: italic;
@@ -617,7 +696,8 @@
         <div class="verdict ${result.is_clickbait ? 'bait' : 'legit'}">
           <span>${result.is_clickbait ? '⚠' : '✓'}</span>
           <span class="label">${result.is_clickbait ? 'clickbait' : 'looks legit'}</span>
-          <button class="x" id="close" title="close">×</button>
+          <button class="ctrl" id="toggle" title="collapse">▾</button>
+          <button class="ctrl" id="close" title="close">×</button>
         </div>
         ${result.is_clickbait && result.clickbait_reason
           ? `<div class="reason">${escapeHTML(result.clickbait_reason)}</div>` : ''}
@@ -635,7 +715,21 @@
       </div>
     `;
 
-    root.getElementById('close')?.addEventListener('click', () => removeNode(HOST_ID));
+    const panel = /** @type {HTMLElement | null} */ (root.querySelector('.panel'));
+    const verdict = /** @type {HTMLElement | null} */ (root.querySelector('.verdict'));
+    const toggle = root.getElementById('toggle');
+    const close = root.getElementById('close');
+    if (panel && verdict && toggle && close) {
+      let collapsed = false;
+      toggle.addEventListener('click', () => {
+        collapsed = !collapsed;
+        panel.classList.toggle('collapsed', collapsed);
+        toggle.textContent = collapsed ? '▴' : '▾';
+        toggle.title = collapsed ? 'expand' : 'collapse';
+      });
+      close.addEventListener('click', () => removeNode(HOST_ID));
+      makeDraggable(panel, verdict);
+    }
   }
 
   // Listen for context-menu requests from the background worker. Registered
@@ -658,7 +752,7 @@
 
     const settings = /** @type {Partial<GistSettings>} */ (
       await chrome.storage.sync.get({
-        provider: 'anthropic',
+        provider: 'openai',
         anthropicKey: '',
         openaiKey: '',
         skipDomains: [],
@@ -675,7 +769,7 @@
     const extracted = extractContent();
     if (!isAnalyzable(extracted)) return;
 
-    if (!settings.anthropicKey && !settings.openaiKey) {
+    if (settings.provider !== 'chromeai' && !settings.anthropicKey && !settings.openaiKey) {
       showSetupBanner();
       return;
     }

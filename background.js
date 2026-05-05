@@ -29,14 +29,15 @@ When in doubt, lean toward clickbait. Both patterns count even when the body is 
 When no Anchor text is provided, judge the destination title alone for the same patterns.
 
 Other rules:
-1. Summarize the destination's actual substance in 3-5 bullet points (Hebrew or English — match the page language). Cut through the BS — give the reader what they actually wanted to know, including any name the headline withheld.
-2. When is_clickbait=true, clickbait_reason MUST: (a) name the pattern (A=curiosity gap or B=overpromise), (b) quote the manipulative phrase from the anchor or title, and (c) say briefly what was withheld or oversold.
+1. Summarize the destination's actual substance in 3-5 bullet points in the SAME language as the page content. Cut through the BS — give the reader what they actually wanted to know, including any name the headline withheld.
+2. When is_clickbait=true, clickbait_reason MUST: (a) name the pattern (A=curiosity gap or B=overpromise), (b) quote the manipulative phrase from the anchor or title, and (c) say briefly what was withheld or oversold. Write the reason in the same language as the page.
+3. The clickbait patterns (A and B) are universal — apply the same logic in any language. The Hebrew markers above are illustrative; equivalent patterns exist in every language.
 
 Response format:
 {
   "is_clickbait": true|false,
-  "language": "he" | "en",
-  "title": "cleaned up, honest title that reveals what the original withheld",
+  "language": "ISO 639-1 code of the page language, e.g. 'en', 'he', 'ar', 'es', 'fr', 'de', 'ja', 'zh', 'ko', 'ru', 'pt'",
+  "title": "cleaned up, honest title that reveals what the original withheld, in the page's language",
   "summary": ["point 1", "point 2", "..."],
   "clickbait_reason": "why it's clickbait (only if is_clickbait=true, null otherwise)"
 }`;
@@ -59,7 +60,7 @@ ${content}`;
 async function getSettings() {
   /** @type {GistSettings} */
   const defaults = {
-    provider: 'anthropic',
+    provider: 'openai',
     anthropicKey: '',
     openaiKey: '',
     anthropicModel: ANTHROPIC_DEFAULT_MODEL,
@@ -193,20 +194,49 @@ async function callOpenAI({ apiKey, model, userMessage }) {
 }
 
 /**
- * Pick which provider to use. The user's explicit selection wins if they
- * actually have a key for it; otherwise fall back to whichever provider
- * has a key configured. Returns null if neither has a key.
+ * Pick which provider to use. Chrome AI doesn't need a key — explicit
+ * selection always wins. For the cloud providers, the user's explicit
+ * selection wins if they have a key for it; otherwise fall back to whichever
+ * has a key. Returns null if no usable provider is configured.
  * @param {GistSettings} s
- * @returns {'anthropic' | 'openai' | null}
+ * @returns {'anthropic' | 'openai' | 'chromeai' | null}
  */
 function pickProvider(s) {
   const hasA = !!s.anthropicKey;
   const hasO = !!s.openaiKey;
+  if (s.provider === 'chromeai') return 'chromeai';
   if (s.provider === 'openai' && hasO) return 'openai';
   if (s.provider === 'anthropic' && hasA) return 'anthropic';
   if (hasO) return 'openai';
   if (hasA) return 'anthropic';
   return null;
+}
+
+/**
+ * Call Chrome's built-in Prompt API. Runs Gemini Nano locally on-device.
+ * No key, no network. Throws a descriptive error if unavailable so the
+ * options page can suggest the right flag to flip.
+ * @param {{ userMessage: string }} args
+ * @returns {Promise<unknown>}
+ */
+async function callChromeAI({ userMessage }) {
+  const LM = /** @type {any} */ (self).LanguageModel;
+  if (!LM) {
+    throw new Error('Chrome AI not available — enable chrome://flags/#prompt-api-for-gemini-nano and reload.');
+  }
+  const availability = await LM.availability();
+  if (availability === 'unavailable') {
+    throw new Error('Chrome AI: device not supported (needs recent Chrome + capable hardware).');
+  }
+  const session = await LM.create({
+    initialPrompts: [{ role: 'system', content: SYSTEM_PROMPT }],
+  });
+  try {
+    const response = await session.prompt(userMessage);
+    return JSON.parse(stripJsonFences(response));
+  } finally {
+    try { session.destroy(); } catch {}
+  }
 }
 
 /**
@@ -225,17 +255,22 @@ async function analyze({ url, title, content, anchorText }) {
   const userMessage = buildUserMessage({ url, title, content, anchorText });
 
   /** @type {unknown} */
-  const raw = provider === 'openai'
-    ? await callOpenAI({
-        apiKey: settings.openaiKey,
-        model: settings.openaiModel || OPENAI_DEFAULT_MODEL,
-        userMessage,
-      })
-    : await callAnthropic({
-        apiKey: settings.anthropicKey,
-        model: settings.anthropicModel || ANTHROPIC_DEFAULT_MODEL,
-        userMessage,
-      });
+  let raw;
+  if (provider === 'chromeai') {
+    raw = await callChromeAI({ userMessage });
+  } else if (provider === 'openai') {
+    raw = await callOpenAI({
+      apiKey: settings.openaiKey,
+      model: settings.openaiModel || OPENAI_DEFAULT_MODEL,
+      userMessage,
+    });
+  } else {
+    raw = await callAnthropic({
+      apiKey: settings.anthropicKey,
+      model: settings.anthropicModel || ANTHROPIC_DEFAULT_MODEL,
+      userMessage,
+    });
+  }
 
   if (typeof raw !== 'object' || raw === null) {
     throw new Error('Bad response shape');
@@ -247,7 +282,10 @@ async function analyze({ url, title, content, anchorText }) {
   /** @type {GistResult} */
   const result = {
     is_clickbait: !!r.is_clickbait,
-    language: r.language === 'he' ? 'he' : 'en',
+    // Trust the model's ISO code, default to 'en' if missing or malformed.
+    language: typeof r.language === 'string' && /^[a-z]{2,3}(-[A-Za-z0-9]+)?$/.test(r.language)
+      ? r.language.toLowerCase().slice(0, 2)
+      : 'en',
     title: r.title || title,
     summary: Array.isArray(r.summary) ? r.summary : [],
     clickbait_reason: r.is_clickbait ? r.clickbait_reason || null : null,

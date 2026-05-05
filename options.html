@@ -87,6 +87,34 @@
       transition: opacity .15s ease;
     }
     .suboption.disabled { opacity: 0.4; pointer-events: none; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 3px;
+      font-size: 0.92em; word-break: break-all;
+    }
+    .chromeai-blurb {
+      margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.55;
+    }
+    .chromeai-blurb strong { color: var(--fg); font-weight: 600; }
+    .chromeai-status {
+      padding: 10px 12px; background: #fff; border: 1px solid var(--line);
+      border-radius: 6px; font-size: 13px;
+    }
+    .chromeai-status .ok { color: #2e7a36; font-weight: 600; }
+    .chromeai-status .warn { color: #b58400; font-weight: 600; }
+    .chromeai-status .bad { color: var(--accent); font-weight: 600; }
+    .chromeai-flags { margin-top: 14px; }
+    .chromeai-flags summary {
+      cursor: pointer; font-size: 13px; color: var(--muted);
+      user-select: none; padding: 4px 0;
+    }
+    .chromeai-flags summary:hover { color: var(--fg); }
+    .chromeai-flags ol {
+      font-size: 12.5px; padding-left: 22px; margin: 10px 0 0; line-height: 1.7;
+    }
+    .chromeai-flags li { margin-bottom: 4px; }
+    .chromeai-req { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+    .chromeai-req a { color: var(--fg); }
     .history-list {
       max-height: 480px; overflow-y: auto;
       border: 1px solid var(--line); border-radius: 6px; background: #fff;
@@ -146,12 +174,14 @@
     <fieldset>
       <legend>Provider</legend>
       <div class="seg">
-        <input type="radio" id="p-anthropic" name="provider" value="anthropic">
-        <label for="p-anthropic">Anthropic</label>
         <input type="radio" id="p-openai" name="provider" value="openai">
         <label for="p-openai">OpenAI</label>
+        <input type="radio" id="p-anthropic" name="provider" value="anthropic">
+        <label for="p-anthropic">Anthropic</label>
+        <input type="radio" id="p-chromeai" name="provider" value="chromeai">
+        <label for="p-chromeai">Chrome AI</label>
       </div>
-      <div class="hint" style="margin-top: 8px;">used when both keys are set. if only one key is set, that provider is used regardless.</div>
+      <div class="hint" style="margin-top: 8px;">openai/anthropic require an API key. chrome AI runs locally on your device — free, private, no key needed (lower quality).</div>
     </fieldset>
 
     <fieldset id="anthropic-fs">
@@ -194,6 +224,26 @@
           <option value="gpt-4o-mini">gpt-4o-mini</option>
         </select>
       </label>
+    </fieldset>
+
+    <fieldset id="chromeai-fs">
+      <legend>Chrome AI (local)</legend>
+      <p class="chromeai-blurb">
+        Runs <strong>Gemini Nano</strong> on your device — free, no key, fully private. Quality is lower than cloud models; clickbait detection on Hebrew or other non-English content may be unreliable. Best for fast English summarization on legit pages.
+      </p>
+      <div id="chromeai-status" class="chromeai-status">checking availability…</div>
+      <details class="chromeai-flags">
+        <summary>not available? enable these flags</summary>
+        <ol>
+          <li>Open <code>chrome://flags/#prompt-api-for-gemini-nano</code> → set to <strong>Enabled</strong>.</li>
+          <li>Open <code>chrome://flags/#optimization-guide-on-device-model</code> → set to <strong>Enabled BypassPerfRequirement</strong>.</li>
+          <li>Click <strong>Relaunch</strong> at the bottom of the flags page.</li>
+          <li>Reopen this options page — the status above should update. The model (~2-4 GB) downloads in the background on first use.</li>
+        </ol>
+        <p class="chromeai-req">
+          Requires Chrome 138+ on a device with sufficient memory and disk space. <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank" rel="noopener">Chrome built-in AI docs →</a>
+        </p>
+      </details>
     </fieldset>
 
     <fieldset>

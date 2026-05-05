@@ -6,7 +6,8 @@
 
 interface GistResult {
   is_clickbait: boolean;
-  language: 'he' | 'en';
+  /** ISO 639-1 code of the page's content language ('en', 'he', 'ar', 'es', etc.). */
+  language: string;
   title: string;
   summary: string[];
   clickbait_reason: string | null;
@@ -24,7 +25,7 @@ interface AnalyzePayload {
 }
 
 interface GistSettings {
-  provider: 'anthropic' | 'openai';
+  provider: 'anthropic' | 'openai' | 'chromeai';
   anthropicKey: string;
   openaiKey: string;
   anthropicModel: string;
@@ -55,7 +56,8 @@ interface GistHistoryEntry {
   url: string;
   title: string;
   hostname: string;
-  language: 'he' | 'en';
+  /** ISO 639-1 code of the page's content language ('en', 'he', 'ar', 'es', etc.). */
+  language: string;
   is_clickbait: boolean;
   summary: string[];
   clickbait_reason: string | null;
@@ -72,3 +74,19 @@ interface ProviderCallArgs {
   model: string;
   userMessage: string;
 }
+
+// Chrome built-in AI (Prompt API). Available in modern Chrome behind a flag,
+// or built-in in newer versions. Surfaces Gemini Nano on-device.
+interface ChromeLanguageModelSession {
+  prompt(text: string): Promise<string>;
+  destroy(): void;
+}
+interface ChromeLanguageModel {
+  availability(): Promise<'unavailable' | 'downloadable' | 'downloading' | 'available'>;
+  create(options?: {
+    initialPrompts?: Array<{ role: string; content: string }>;
+    temperature?: number;
+    topK?: number;
+  }): Promise<ChromeLanguageModelSession>;
+}
+declare const LanguageModel: ChromeLanguageModel | undefined;

@@ -13,8 +13,9 @@ Most "clickbait detectors" only look at the article you've already opened. But r
 - **Optional auto-summarize on page load** — off by default. Turn it on if you want every article you read summarized in a small dark panel.
 - **Optional hostile takeover** for clickbait pages — replaces the entire page with a brutalist editorial screen calling out the bait. The original page is preserved underneath; "see the original anyway" restores it.
 - **Recent gists** — history of the last 100 gists, with verdict badges, anchor text, summaries, and timestamps.
-- **Hebrew + RTL** — detects page direction, positions UI consistently, understands Hebrew clickbait patterns.
-- **Bring your own key** — Anthropic Claude or OpenAI, your choice.
+- **Movable + collapsable panels** — drag the panel by its head bar; collapse to a verdict-only pill.
+- **Any language** — verdicts and summaries come back in the page's language. RTL scripts (Hebrew, Arabic, Persian, Urdu, Yiddish, Pashto, Sindhi, Dhivehi) are auto-detected and rendered correctly.
+- **Three providers** — OpenAI (default), Anthropic, or **Chrome's built-in AI** (free, local, private — runs Gemini Nano on-device).
 
 ## Install (developer mode)
 
@@ -22,7 +23,7 @@ Most "clickbait detectors" only look at the article you've already opened. But r
 2. `npm install && npm run build`
 3. Open `chrome://extensions`, turn on **Developer mode** (toggle at top-right).
 4. Click **Load unpacked** → pick the **`build/`** folder.
-5. The options page opens automatically. Pick a provider, paste your API key, save.
+5. The options page opens automatically. Pick a provider and either paste an API key (OpenAI / Anthropic) or pick Chrome AI (no key needed). Save.
 
 > You can also Load unpacked from the project root — Chrome will load the same files. `build/` is a clean export of just the eight runtime files (what you'd zip for the Chrome Web Store).
 
@@ -30,9 +31,10 @@ Most "clickbait detectors" only look at the article you've already opened. But r
 
 On install the options page opens. Configure:
 
-- **Provider** — Anthropic or OpenAI. Only the active vendor's fields are shown.
-- **API key** — stored in `chrome.storage.sync` (syncs via your Chrome profile). Only ever sent to the corresponding provider's API.
-- **Model** — dropdown of supported models per provider. Defaults: `claude-sonnet-4-6` / `gpt-4.1-mini` (cheap and good).
+- **Provider** — OpenAI (default), Anthropic, or Chrome AI. Only the active vendor's fields are shown.
+- **API key** (OpenAI / Anthropic) — stored in `chrome.storage.sync` (syncs via your Chrome profile). Only ever sent to the corresponding provider's API.
+- **Model** — dropdown of supported models per provider. Defaults: `gpt-4.1-mini` (OpenAI) / `claude-sonnet-4-6` (Anthropic). Bump to `gpt-4.1` or `claude-opus-4-7` for tougher clickbait calls.
+- **Chrome AI** — no key, no network call, fully private. Quality is lower than cloud models — clickbait detection on non-English content may be unreliable. The options page live-detects availability; if the API isn't exposed yet, expand the "enable these flags" section for copy-paste instructions.
 - **Skip these domains** — hostnames to ignore for auto-run. Built-in defaults already cover Google, GitHub, YouTube, Slack, ChatGPT, etc.
 - **Behavior**:
   - `auto-summarize every page on load` — *off by default*. When off, the only entry point is right-click.
@@ -83,14 +85,14 @@ Open options → scroll to **Recent gists**. The last 100 gists appear with verd
 ## Privacy
 
 - **API keys** — `chrome.storage.sync`, only sent to the provider's API.
-- **Page content** — sent to your chosen LLM provider for analysis. That's it. No analytics, no telemetry, no third-party services.
+- **Page content** — sent to your chosen LLM provider for analysis. With Chrome AI, content never leaves your device. With OpenAI/Anthropic, it's sent only to the corresponding API. No analytics, no telemetry, no third-party services.
 - **History** — `chrome.storage.local`, this device only, not synced.
 - **URL cache** — `chrome.storage.session`, cleared when Chrome closes. Repeat gists of the same URL within an hour return the cached result for free.
 - **Skip-listed domains** never have their content extracted or sent anywhere.
 
 ## Cost
 
-A typical gist costs **~$0.001–$0.005** at the default models (Sonnet / 4.1-mini). Repeat views hit the in-session URL cache and cost nothing. The history is local only.
+A typical gist costs **~$0.001–$0.005** with the default cloud models (`gpt-4.1-mini` / `claude-sonnet-4-6`). Repeat views hit the in-session URL cache and cost nothing. **Chrome AI is free** — it runs locally. The history is always local.
 
 ## Development
 

@@ -2,7 +2,7 @@
 
 /** @type {GistSettings} */
 const DEFAULTS = {
-  provider: 'anthropic',
+  provider: 'openai',
   anthropicKey: '',
   openaiKey: '',
   anthropicModel: 'claude-sonnet-4-6',
@@ -26,8 +26,11 @@ function getEls() {
   return {
     pAnthropic: /** @type {HTMLInputElement} */ ($('p-anthropic')),
     pOpenai: /** @type {HTMLInputElement} */ ($('p-openai')),
+    pChromeai: /** @type {HTMLInputElement} */ ($('p-chromeai')),
     anthropicFs: $('anthropic-fs'),
     openaiFs: $('openai-fs'),
+    chromeaiFs: $('chromeai-fs'),
+    chromeaiStatus: $('chromeai-status'),
     anthropicKey: /** @type {HTMLInputElement} */ ($('anthropicKey')),
     openaiKey: /** @type {HTMLInputElement} */ ($('openaiKey')),
     anthropicModel: /** @type {HTMLSelectElement} */ ($('anthropicModel')),
@@ -80,7 +83,7 @@ async function loadHistory() {
       <div class="hist-entry">
         <div class="hist-head" data-idx="${i}">
           <span class="hist-verdict ${verdictClass}">${verdictText}</span>
-          <span class="hist-title">${escapeHTML(h.title || h.url)}</span>
+          <span class="hist-title" dir="auto">${escapeHTML(h.title || h.url)}</span>
           <span class="hist-meta">${escapeHTML(h.hostname || '')}</span>
           <span class="hist-meta">${relativeTime(h.timestamp)}</span>
         </div>
@@ -131,16 +134,44 @@ function setSelectValue(select, value) {
 
 function syncVendorVisibility() {
   const els = getEls();
-  const isOpenAI = els.pOpenai.checked;
-  els.anthropicFs.style.display = isOpenAI ? 'none' : '';
-  els.openaiFs.style.display = isOpenAI ? '' : 'none';
+  const provider = els.pAnthropic.checked ? 'anthropic'
+    : els.pChromeai.checked ? 'chromeai'
+    : 'openai';
+  els.openaiFs.style.display = provider === 'openai' ? '' : 'none';
+  els.anthropicFs.style.display = provider === 'anthropic' ? '' : 'none';
+  els.chromeaiFs.style.display = provider === 'chromeai' ? '' : 'none';
+}
+
+async function checkChromeAI() {
+  const status = getEls().chromeaiStatus;
+  const LM = /** @type {any} */ (window).LanguageModel;
+  if (!LM) {
+    status.innerHTML = '<span class="bad">⚠ not available</span> — your Chrome version doesn\'t expose the Prompt API. See instructions below.';
+    return;
+  }
+  try {
+    const availability = await LM.availability();
+    if (availability === 'available') {
+      status.innerHTML = '<span class="ok">✓ ready</span> — Gemini Nano is loaded and on-device.';
+    } else if (availability === 'downloadable') {
+      status.innerHTML = '<span class="warn">downloadable</span> — Chrome will download the model (~2–4 GB) on first use.';
+    } else if (availability === 'downloading') {
+      status.innerHTML = '<span class="warn">downloading model…</span> — try again in a few minutes.';
+    } else {
+      status.innerHTML = '<span class="bad">⚠ unavailable</span> — your device may not meet the hardware/disk requirements. See instructions below.';
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'check failed';
+    status.innerHTML = `<span class="bad">⚠ ${msg}</span>`;
+  }
 }
 
 async function load() {
   const els = getEls();
   const cfg = /** @type {GistSettings} */ (await chrome.storage.sync.get(DEFAULTS));
-  els.pAnthropic.checked = cfg.provider !== 'openai';
   els.pOpenai.checked = cfg.provider === 'openai';
+  els.pAnthropic.checked = cfg.provider === 'anthropic';
+  els.pChromeai.checked = cfg.provider === 'chromeai';
   els.anthropicKey.value = cfg.anthropicKey || '';
   els.openaiKey.value = cfg.openaiKey || '';
   setSelectValue(els.anthropicModel, cfg.anthropicModel || DEFAULTS.anthropicModel);
@@ -150,6 +181,7 @@ async function load() {
   els.hostileTakeover.checked = cfg.hostileTakeover !== false;
   syncSubOptionState();
   syncVendorVisibility();
+  checkChromeAI();
 }
 
 function syncSubOptionState() {
@@ -159,9 +191,12 @@ function syncSubOptionState() {
 
 async function save() {
   const els = getEls();
+  const provider = els.pChromeai.checked ? 'chromeai'
+    : els.pAnthropic.checked ? 'anthropic'
+    : 'openai';
   /** @type {GistSettings} */
   const next = {
-    provider: els.pOpenai.checked ? 'openai' : 'anthropic',
+    provider,
     anthropicKey: els.anthropicKey.value.trim(),
     openaiKey: els.openaiKey.value.trim(),
     anthropicModel: els.anthropicModel.value.trim() || DEFAULTS.anthropicModel,
@@ -212,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
   els.autoRun.addEventListener('change', syncSubOptionState);
   els.pAnthropic.addEventListener('change', syncVendorVisibility);
   els.pOpenai.addEventListener('change', syncVendorVisibility);
+  els.pChromeai.addEventListener('change', syncVendorVisibility);
   wireShowToggle(els.anthropicShow, els.anthropicKey);
   wireShowToggle(els.openaiShow, els.openaiKey);
 });
