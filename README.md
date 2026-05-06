@@ -2,6 +2,8 @@
 
 A Chrome extension that summarizes web pages into 3-5 bullets and flags clickbait — including the **gap between what a link promises and what the page actually delivers**.
 
+![the-gist showing a clickbait verdict on a right-clicked link](docs/panel-clickbait.png)
+
 ## Why this exists
 
 Most "clickbait detectors" only look at the article you've already opened. But real clickbait lives at the link level — the anchor text on the source page that withholds key info to manufacture a click. By the time you've opened the page, the bait already worked. the-gist lets you **right-click any link** and see whether the headline was bait *before* you commit, by comparing the anchor text against the destination's actual content.
@@ -77,6 +79,8 @@ Turn on `auto-summarize every page on load` in options. Now every article-like p
 Clickbait pages are replaced with a full-screen brutalist takeover — bold serif headline, numbered bullets, red `clickbait` badge with the reason. Two buttons at the bottom:
 - **see the original anyway →** — removes the takeover, restores the page (its DOM was never destroyed), and shows you the regular summary panel.
 - **never gist this site** — adds the hostname to your skip list, dismisses.
+
+![Brutalist hostile-takeover screen](docs/takeover.png)
 
 ### History
 

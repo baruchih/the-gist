@@ -183,5 +183,25 @@ const historyOut = join(outDir, 'history.png');
 await page.screenshot({ path: historyOut, fullPage: false });
 console.log(`✓ ${historyOut}`);
 
+// ---- Promo tiles ----------------------------------------------------------
+// Different viewport sizes — Chrome Web Store specs:
+//   small promo:    440 x 280
+//   marquee promo: 1400 x 560
+// We capture each at its native size with 2x DPR for retina-grade output.
+
+const promos = [
+  { file: 'promo-small.html',    name: 'promo-small',    width: 440,  height: 280 },
+  { file: 'promo-marquee.html',  name: 'promo-marquee',  width: 1400, height: 560 },
+];
+
+for (const promo of promos) {
+  await page.setViewportSize({ width: promo.width, height: promo.height });
+  await page.goto('file://' + join(demosDir, promo.file), { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800); // Google Fonts settle
+  const out = join(outDir, `${promo.name}.png`);
+  await page.screenshot({ path: out, fullPage: false });
+  console.log(`✓ ${out}`);
+}
+
 await browser.close();
-console.log(`\nGenerated 6 screenshots in screenshots/output/`);
+console.log(`\nGenerated 6 screenshots and 2 promo tiles in screenshots/output/`);
