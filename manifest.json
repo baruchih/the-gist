@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "the-gist",
   "version": "0.1.0",
-  "description": "Summarizes pages and replaces clickbait with a brutalist takeover.",
-  "permissions": ["storage", "scripting", "contextMenus"],
+  "description": "Right-click any link for a summary and clickbait verdict — comparing the headline against the page's real content.",
+  "permissions": ["storage", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"

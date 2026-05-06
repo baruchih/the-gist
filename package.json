@@ -7,11 +7,13 @@
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "icons": "node scripts/gen-icons.mjs",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@types/chrome": "^0.0.270",
+    "playwright": "^1.49.0",
     "typescript": "^5.5.0"
   }
 }

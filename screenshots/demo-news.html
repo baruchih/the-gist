@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>the-gist — news demo</title>
+  <link rel="stylesheet" href="_styles.css">
+</head>
+<body>
+  <header class="site-head">
+    <h1 class="site-name">The Daily Wire</h1>
+    <span class="site-date">Tue · May 6 · 2026</span>
+  </header>
+
+  <div class="section-head">
+    <h2>Today's stories</h2>
+  </div>
+
+  <div class="cards">
+    <a class="card" href="#tv-show" id="bait-card">
+      <div class="thumb thumb-4"></div>
+      <p class="card-kicker">Culture</p>
+      <h3>The TV show everyone's calling 'unmissable' this week</h3>
+      <p class="card-blurb">Critics rave, viewers can't look away — find out why.</p>
+    </a>
+    <a class="card" href="#stanford">
+      <div class="thumb thumb-3"></div>
+      <p class="card-kicker">Research</p>
+      <h3>How feed algorithms shape what 12,000 readers actually consume</h3>
+      <p class="card-blurb">A six-month Stanford study finds personalization broadens reading by 22% — until it doesn't.</p>
+    </a>
+    <a class="card" href="#climate">
+      <div class="thumb thumb-2"></div>
+      <p class="card-kicker">Climate</p>
+      <h3>Why mid-range winter forecasts are getting harder</h3>
+      <p class="card-blurb">Stratospheric polar vortex shifts are scrambling the models meteorologists rely on.</p>
+    </a>
+    <a class="card" href="#satellite">
+      <div class="thumb thumb-1"></div>
+      <p class="card-kicker">Tech</p>
+      <h3>How a small student team launched a satellite for $4.7M</h3>
+      <p class="card-blurb">Four undergrads put a 1U cubesat in low orbit on a budget that would make NASA blush.</p>
+    </a>
+  </div>
+
+  <!-- Overlay 1: right-click context menu -->
+  <div class="ctx-menu" data-overlay="menu" hidden>
+    <div class="ctx-item">Open Link in New Tab<span class="shortcut">⌘ click</span></div>
+    <div class="ctx-item">Open Link in New Window</div>
+    <div class="ctx-item">Open Link in Incognito Window</div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-item">Save Link As…</div>
+    <div class="ctx-item">Copy Link Address</div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-item highlight">
+      <span class="ctx-icon"><img src="../icons/icon-48.png" alt=""></span>
+      gist this link
+    </div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-item">Inspect</div>
+  </div>
+
+  <!-- Overlay 2: clickbait panel (verdict for the bait card) -->
+  <div class="panel" data-overlay="clickbait" hidden>
+    <div class="verdict bait">
+      <span>⚠</span>
+      <span class="label">clickbait</span>
+      <button class="ctrl" title="collapse">▾</button>
+      <button class="ctrl" title="close">×</button>
+    </div>
+    <div class="reason">
+      Pattern A — curiosity gap. The headline "the TV show everyone's calling 'unmissable'" withholds the show's name to manufacture a click. Body fully delivers the answer.
+    </div>
+    <div class="body">
+      <div class="meta-row">
+        <span class="brand">the-gist</span>
+        <span class="url">apple.com/tv</span>
+      </div>
+      <h3 class="title">Apple TV+'s 'Mariner' becomes 2026's surprise sci-fi hit</h3>
+      <ul>
+        <li>Mariner is an 8-episode Apple TV+ original sci-fi drama.</li>
+        <li>Critics praise the slow-burn pacing and grounded performances.</li>
+        <li>Currently #1 on Apple TV+ charts in 14 countries.</li>
+        <li>Renewed for a second season after just three episodes aired.</li>
+      </ul>
+      <a class="open" href="#">open the link →</a>
+    </div>
+  </div>
+
+  <!-- Overlay 3: legit panel (verdict for the Stanford card) -->
+  <div class="panel" data-overlay="legit" hidden>
+    <div class="verdict legit">
+      <span>✓</span>
+      <span class="label">looks legit</span>
+      <button class="ctrl" title="collapse">▾</button>
+      <button class="ctrl" title="close">×</button>
+    </div>
+    <div class="body">
+      <div class="meta-row">
+        <span class="brand">the-gist</span>
+        <span class="url">stanford.edu</span>
+      </div>
+      <h3 class="title">Six-month study tracks how feed algorithms shape what 12,000 readers actually read</h3>
+      <ul>
+        <li>Observational study tracked actual reading behavior across 12,000 participants over six months.</li>
+        <li>Light personalization broadens the news diet by ~22% versus a chronological feed.</li>
+        <li>Past a tuning threshold, the same systems narrow the diet by up to 40%.</li>
+        <li>Authors propose a "diversity floor" parameter for production systems.</li>
+        <li>Full dataset and analysis code released under MIT license.</li>
+      </ul>
+      <a class="open" href="#">open the link →</a>
+    </div>
+  </div>
+</body>
+</html>

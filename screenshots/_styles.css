@@ -1,0 +1,362 @@
+/* Shared styles for screenshot demos. The panel + takeover CSS mirrors what
+   content.js renders inside its Shadow DOM at runtime — keep in sync if you
+   change the live UI. */
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+/* ---- News homepage layout ----------------------------------------- */
+
+.site-head {
+  border-bottom: 1px solid #e5e5e5;
+  padding: 24px 40px 18px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.site-name {
+  font: 700 28px/1 Georgia, 'Times New Roman', serif;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: #1a1a1a;
+}
+.site-date {
+  font-size: 13px;
+  color: #888;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.04em;
+}
+.section-head {
+  max-width: 1200px;
+  margin: 32px auto 0;
+  padding: 0 40px;
+}
+.section-head h2 {
+  font: 600 14px/1 ui-sans-serif, system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #888;
+  margin: 0 0 18px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  padding: 0 40px;
+}
+.card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+}
+.card .thumb {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.card .thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.12));
+  pointer-events: none;
+}
+.thumb-1 { background: linear-gradient(135deg, #1a3a5c 0%, #2e5e8a 50%, #4a8bc4 100%); }
+.thumb-2 { background: linear-gradient(135deg, #2a4633 0%, #4d7558 50%, #7ea58a 100%); }
+.thumb-3 { background: linear-gradient(135deg, #3d2c4a 0%, #5e447a 50%, #876ba0 100%); }
+.thumb-4 { background: linear-gradient(135deg, #6b1f2a 0%, #a83040 50%, #d96578 100%); }
+.card-kicker {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: #888;
+  margin: 14px 0 6px;
+}
+.card h3 {
+  font: 600 17px/1.3 Georgia, 'Times New Roman', serif;
+  margin: 0 0 8px;
+  letter-spacing: -0.005em;
+  color: #1a1a1a;
+}
+.card-blurb {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---- Right-click context menu (Chrome-like) ----------------------- */
+
+.ctx-menu {
+  position: fixed;
+  background: #fefefe;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 6px 0;
+  font: 13px/1 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: #1a1a1a;
+  min-width: 240px;
+  z-index: 200;
+  user-select: none;
+}
+.ctx-item {
+  padding: 7px 16px 7px 36px;
+  position: relative;
+  white-space: nowrap;
+  cursor: default;
+}
+.ctx-item.disabled { color: #aaa; }
+.ctx-item .shortcut {
+  float: right;
+  margin-left: 36px;
+  color: #888;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+}
+.ctx-item.highlight {
+  background: #0a84ff;
+  color: #fff;
+}
+.ctx-item.highlight .shortcut { color: rgba(255,255,255,0.7); }
+.ctx-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 6px 0;
+}
+.ctx-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ctx-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ctx-callout {
+  position: fixed;
+  font: 600 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+  z-index: 250;
+}
+
+/* ---- Panel (matches renderLinkGist in content.js) ----------------- */
+
+.panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 380px;
+  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: #f0f0f0;
+  background: rgba(15, 15, 15, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 100;
+}
+.panel * { box-sizing: border-box; }
+.verdict {
+  padding: 11px 14px;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+.verdict.bait { background: #D94F3B; color: #fff; }
+.verdict.legit { background: #2e7a36; color: #fff; }
+.verdict .label { flex: 1; }
+.verdict .ctrl {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.85;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 6px;
+  font-weight: 600;
+}
+.reason {
+  padding: 8px 14px 10px;
+  font-size: 12px;
+  color: #f3c8c0;
+  background: rgba(217, 79, 59, 0.18);
+  font-style: italic;
+}
+.panel .body { padding: 12px 14px 14px; }
+.meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.brand {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  opacity: 0.4;
+  text-transform: lowercase;
+}
+.url {
+  font: 11px/1.3 ui-monospace, SFMono-Regular, monospace;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+.panel .title {
+  font-weight: 600;
+  font-size: 16px;
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+.panel ul {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.panel li {
+  position: relative;
+  padding-left: 14px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.panel li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  opacity: 0.5;
+  font-weight: 700;
+}
+.open {
+  display: block;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Takeover (matches renderTakeover in content.js) -------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=JetBrains+Mono:wght@500&display=swap');
+
+.takeover {
+  position: fixed; inset: 0;
+  background: #FAFAF5;
+  color: #1a1a1a;
+  font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  overflow: auto;
+  padding: 72px 32px;
+}
+.takeover-wrap { max-width: 640px; margin: 0 auto; }
+.takeover-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 24px; margin-bottom: 48px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.takeover-mark {
+  font: 600 22px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+.takeover-host {
+  font: 500 12px/1 'JetBrains Mono', ui-monospace, monospace;
+  opacity: 0.5;
+}
+.takeover-badge {
+  display: inline-block;
+  font: 500 12px/1 'JetBrains Mono', ui-monospace, monospace;
+  color: #FAFAF5;
+  background: #D94F3B;
+  padding: 7px 12px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  margin-bottom: 12px;
+}
+.takeover-reason {
+  font-style: italic;
+  color: #6a6a6a;
+  font-size: 14px;
+  margin: 0 0 36px;
+}
+.takeover-title {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
+  font-size: 44px;
+  line-height: 1.12;
+  margin: 0 0 48px;
+  letter-spacing: -0.01em;
+}
+.takeover-list { list-style: none; margin: 0; padding: 0; }
+.takeover-list li {
+  display: flex; align-items: baseline; gap: 16px;
+  padding: 18px 0;
+  border-top: 1px solid rgba(26, 26, 26, 0.12);
+  font-size: 17px; line-height: 1.55;
+}
+.takeover-list li:last-child {
+  border-bottom: 1px solid rgba(26, 26, 26, 0.12);
+}
+.takeover-num {
+  font: 500 12px/1 'JetBrains Mono', ui-monospace, monospace;
+  opacity: 0.45;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+.takeover-pt { flex: 1; }
+.takeover-foot {
+  margin-top: 64px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px;
+}
+.takeover-actions { display: flex; gap: 18px; }
+.takeover-actions a {
+  color: #1a1a1a;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.takeover-by {
+  opacity: 0.4;
+  font: 500 11px/1 'JetBrains Mono', ui-monospace, monospace;
+}
