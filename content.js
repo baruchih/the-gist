@@ -555,6 +555,23 @@
     return String(s ?? '').replace(/[&<>"']/g, (c) => map[c]);
   }
 
+  /**
+   * Returns the URL if it's safe to put inside an href attribute, else null.
+   * Only http(s) is allowed — javascript:, data:, vbscript:, blob: etc. are
+   * refused so a malicious page can't smuggle a script execution into our
+   * "open the link" button.
+   * @param {string} url
+   * @returns {string | null}
+   */
+  function safeHref(url) {
+    try {
+      const p = new URL(url);
+      return p.protocol === 'http:' || p.protocol === 'https:' ? url : null;
+    } catch {
+      return null;
+    }
+  }
+
   // ---- Link-gist (context menu) -------------------------------------------
 
   /**
@@ -620,6 +637,7 @@
    */
   function renderLinkGist(result, linkUrl, opts = {}) {
     const showOpenLink = opts.showOpenLink !== false;
+    const openHref = showOpenLink ? safeHref(linkUrl) : null;
     const root = makeShadowHost(HOST_ID);
     pillRoot = root;
     const dir = isRTLLang(result.language) ? 'rtl' : 'ltr';
@@ -708,8 +726,8 @@
           </div>
           <h3 class="title">${escapeHTML(result.title || '')}</h3>
           <ul>${summary}</ul>
-          ${showOpenLink
-            ? `<a class="open" href="${escapeHTML(linkUrl)}" target="_blank" rel="noopener noreferrer">open the link →</a>`
+          ${openHref
+            ? `<a class="open" href="${escapeHTML(openHref)}" target="_blank" rel="noopener noreferrer">open the link →</a>`
             : ''}
         </div>
       </div>

@@ -55,6 +55,22 @@ function escapeHTML(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => map[c]);
 }
 
+/**
+ * Returns the URL if it's safe for an href, else null. Only http(s) is
+ * allowed — refuses javascript:, data:, etc. that would otherwise execute
+ * in this options page's privileged extension context.
+ * @param {string} url
+ * @returns {string | null}
+ */
+function safeHref(url) {
+  try {
+    const p = new URL(url);
+    return p.protocol === 'http:' || p.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 /** @param {number} ts */
 function relativeTime(ts) {
   const seconds = Math.floor((Date.now() - ts) / 1000);
@@ -79,6 +95,7 @@ async function loadHistory() {
     const verdictClass = h.is_clickbait ? 'bait' : 'legit';
     const verdictText = h.is_clickbait ? '⚠ clickbait' : '✓ legit';
     const summary = (h.summary || []).map((s) => `<li>${escapeHTML(s)}</li>`).join('');
+    const openHref = safeHref(h.url);
     return `
       <div class="hist-entry">
         <div class="hist-head" data-idx="${i}">
@@ -91,7 +108,9 @@ async function loadHistory() {
           ${h.anchorText ? `<div class="hist-anchor">anchor: "${escapeHTML(h.anchorText)}"</div>` : ''}
           ${h.clickbait_reason ? `<div class="hist-reason">${escapeHTML(h.clickbait_reason)}</div>` : ''}
           <ul class="hist-summary">${summary}</ul>
-          <a class="hist-open" href="${escapeHTML(h.url)}" target="_blank" rel="noopener noreferrer">open the link →</a>
+          ${openHref
+            ? `<a class="hist-open" href="${escapeHTML(openHref)}" target="_blank" rel="noopener noreferrer">open the link →</a>`
+            : ''}
         </div>
       </div>
     `;

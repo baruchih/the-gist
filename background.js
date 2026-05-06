@@ -382,13 +382,58 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 /**
- * Fetch a URL's HTML body. Capped at 2MB to keep us out of trouble on
- * pathological pages.
+ * Returns true if the URL points at a loopback / private network /
+ * cloud-metadata host. We refuse to fetch these so a malicious page
+ * can't trick the user into right-clicking a link that exfiltrates
+ * local-network content via the LLM API.
+ *
+ * Note: this is a hostname-string check. We don't resolve DNS, so a
+ * domain that A-records to 127.0.0.1 can still slip through (DNS
+ * rebinding). Browsers' Private Network Access policies offer
+ * defense-in-depth there.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isPrivateUrl(url) {
+  /** @type {string} */
+  let hostname;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return true;
+  }
+  if (!hostname) return true;
+  if (hostname === 'localhost' || hostname === '0.0.0.0') return true;
+  if (hostname.endsWith('.localhost')) return true;
+  if (hostname.endsWith('.local') || hostname.endsWith('.internal')) return true;
+  // IPv4 ranges
+  if (/^127\./.test(hostname)) return true;                 // loopback
+  if (/^10\./.test(hostname)) return true;                  // RFC1918
+  if (/^192\.168\./.test(hostname)) return true;            // RFC1918
+  if (/^169\.254\./.test(hostname)) return true;            // link-local + cloud metadata
+  const m = /^172\.(\d+)\./.exec(hostname);
+  if (m && +m[1] >= 16 && +m[1] <= 31) return true;         // RFC1918
+  // IPv6
+  if (hostname === '::1') return true;
+  if (hostname.startsWith('fe80:') || hostname.startsWith('fc') || hostname.startsWith('fd')) return true;
+  return false;
+}
+
+/**
+ * Fetch a URL's HTML body. Refuses private/loopback hosts both before
+ * the request and after redirects. Capped at 2MB on the response body.
  * @param {string} url
  * @returns {Promise<string>}
  */
 async function fetchHtml(url) {
+  if (isPrivateUrl(url)) {
+    throw new Error('private/local URL — refused');
+  }
   const res = await fetch(url, { redirect: 'follow' });
+  if (isPrivateUrl(res.url)) {
+    // Redirect landed on a private host — refuse to read the body.
+    throw new Error('redirect to private URL — refused');
+  }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const ct = res.headers.get('content-type') || '';
   if (!ct.includes('html') && !ct.includes('text')) {
