@@ -11,9 +11,23 @@
 // Output: screenshots/output/*.png at 1280x800 with 2x DPR (gitignored).
 
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mkdirSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+
+/**
+ * Take a screenshot and write it as 24-bit PNG (no alpha channel).
+ * The Chrome Web Store rejects 32-bit / RGBA PNGs.
+ * @param {import('playwright').Page} page
+ * @param {string} path
+ */
+async function shoot(page, path) {
+  const buf = await page.screenshot({ omitBackground: false });
+  const out = await sharp(buf).removeAlpha().png().toBuffer();
+  await writeFile(path, out);
+}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -21,10 +35,11 @@ const demosDir = join(root, 'screenshots');
 const outDir = join(root, 'screenshots', 'output');
 mkdirSync(outDir, { recursive: true });
 
-// Chrome Web Store accepts 1280x800 or 640x400. We use 1280x800 with 2x DPR
-// for crisp retina-grade screenshots.
+// Chrome Web Store requires exact pixel dimensions — 1280x800 (or 640x400).
+// Promo tiles are 440x280 and 1400x560 exactly. We render at 1x DPR so the
+// PNG dimensions match the store's spec; the store will reject larger.
 const VIEWPORT = { width: 1280, height: 800 };
-const DEVICE_SCALE = 2;
+const DEVICE_SCALE = 1;
 
 const browser = await chromium.launch();
 const context = await browser.newContext({
@@ -63,7 +78,7 @@ async function shotNews(overlay, name) {
   }, overlay);
   await page.waitForTimeout(400);
   const out = join(outDir, `${name}.png`);
-  await page.screenshot({ path: out, fullPage: false });
+  await shoot(page, out);
   console.log(`✓ ${out}`);
 }
 
@@ -78,7 +93,7 @@ await page.goto('file://' + join(demosDir, 'demo-takeover.html'), {
 });
 await page.waitForTimeout(800); // let Google Fonts settle
 const takeoverOut = join(outDir, 'takeover.png');
-await page.screenshot({ path: takeoverOut, fullPage: false });
+await shoot(page, takeoverOut);
 console.log(`✓ ${takeoverOut}`);
 
 // ---- Options page ---------------------------------------------------------
@@ -165,7 +180,7 @@ await page.goto('file://' + join(root, 'options.html'), { waitUntil: 'networkidl
 await page.waitForTimeout(800);
 
 const optionsOut = join(outDir, 'options.png');
-await page.screenshot({ path: optionsOut, fullPage: false });
+await shoot(page, optionsOut);
 console.log(`✓ ${optionsOut}`);
 
 // Scroll the Recent gists fieldset to the top of the viewport (a bit of
@@ -180,7 +195,7 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(300);
 const historyOut = join(outDir, 'history.png');
-await page.screenshot({ path: historyOut, fullPage: false });
+await shoot(page, historyOut);
 console.log(`✓ ${historyOut}`);
 
 // ---- Promo tiles ----------------------------------------------------------
@@ -199,7 +214,7 @@ for (const promo of promos) {
   await page.goto('file://' + join(demosDir, promo.file), { waitUntil: 'networkidle' });
   await page.waitForTimeout(800); // Google Fonts settle
   const out = join(outDir, `${promo.name}.png`);
-  await page.screenshot({ path: out, fullPage: false });
+  await shoot(page, out);
   console.log(`✓ ${out}`);
 }
 
